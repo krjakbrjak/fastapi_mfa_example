@@ -8,9 +8,9 @@ packages = [{include = "auth", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-fastapi = {extras = ["all"], version = "^0.94.0"}
 pyotp = "^2.8.0"
 qrcode = {extras = ["pil"], version = "^7.4.2"}
+fastapi = {version = "^0.116.1", extras = ["standard"]}
 
 [tool.poetry.group.dev.dependencies]
 isort = "^5.12.0"
