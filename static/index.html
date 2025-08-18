@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Two-Factor Authentication example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 2em;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: auto;
+        }
+
+        .box {
+            border: 1px solid #ccc;
+            padding: 1em;
+            border-radius: 8px;
+            margin-bottom: 1em;
+        }
+
+        #mfa-box {
+            text-align: center;
+        }
+
+        #mfa-box button {
+            display: inline-block;
+            margin: 0 0.25em 0.5em 0.25em;
+        }
+
+        .qr {
+            text-align: center;
+            margin-top: 1em;
+        }
+
+        .qr img {
+            max-width: 100%;
+            height: auto;
+            display: inline-block;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 0.5em;
+            margin-bottom: 1em;
+            box-sizing: border-box;
+        }
+
+        button {
+            padding: 0.5em 1em;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div id="login-box" class="box">
+            <h2>Login</h2>
+            <form id="login-form">
+                <input type="text" id="username" placeholder="Username" required><br>
+                <input type="password" id="password" placeholder="Password" required><br>
+                <input type="text" id="otp" placeholder="OTP (if enabled)"><br>
+                <button type="submit">Login</button>
+            </form>
+            <div id="login-error" style="color: red;"></div>
+        </div>
+        <div id="mfa-box" class="box" style="display:none;">
+            <h2>Two-Factor Authentication</h2>
+            <button id="enable-2fa">Enable 2FA</button>
+            <button id="generate-qr">Generate QR Code</button>
+            <button id="logout">Logout</button>
+            <div class="qr" id="qr-container"></div>
+        </div>
+    </div>
+    <script>
+        let token = null;
+
+        function showMfaBox() {
+            document.getElementById('login-box').style.display = 'none';
+            document.getElementById('mfa-box').style.display = 'block';
+        }
+
+        function showLoginBox() {
+            document.getElementById('login-box').style.display = 'block';
+            document.getElementById('mfa-box').style.display = 'none';
+        }
+
+        // Handle login
+        const loginForm = document.getElementById('login-form');
+        loginForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const otp = document.getElementById('otp').value;
+            let url = '/auth/credentials';
+            if (otp) url += `?otp=${encodeURIComponent(otp)}`;
+            const resp = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Basic ' + btoa(username + ':' + password),
+                    'Content-Type': 'application/json'
+                }
+            });
+            const data = await resp.json();
+            if (data.token) {
+                token = data.token;
+                showMfaBox();
+            } else {
+                document.getElementById('login-error').textContent = 'Login failed.';
+            }
+        });
+
+        // Handle logout
+        const logoutBtn = document.getElementById('logout');
+        logoutBtn.addEventListener('click', function () {
+            token = null;
+            document.getElementById('qr-container').innerHTML = '';
+            showLoginBox();
+        });
+
+        // Enable 2FA
+        const enable2faBtn = document.getElementById('enable-2fa');
+        enable2faBtn.addEventListener('click', async function () {
+            const resp = await fetch('/auth/otp/enable', {
+                method: 'PUT',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ enabled: true })
+            });
+            if (resp.ok) {
+                alert('2FA enabled!');
+            } else {
+                alert('Failed to enable 2FA.');
+            }
+        });
+
+        // Generate QR code
+        const generateQrBtn = document.getElementById('generate-qr');
+        generateQrBtn.addEventListener('click', async function () {
+            const resp = await fetch('/auth/otp/generate', {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                }
+            });
+            if (resp.ok) {
+                const blob = await resp.blob();
+                const url = URL.createObjectURL(blob);
+                document.getElementById('qr-container').innerHTML = `<img src="${url}" alt="QR Code">`;
+            } else {
+                alert('Failed to generate QR code.');
+            }
+        });
+    </script>
+</body>
+
+</html>
