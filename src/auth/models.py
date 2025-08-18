@@ -23,12 +23,12 @@ class ErrorCode(Enum):
 
 
 class Login(BaseModel):
-    user: Optional[User]
+    user: Optional[User] = None
     status: ErrorCode
 
 
 class LoginResponse(BaseModel):
-    token: Optional[str]
+    token: Optional[str] = None
     status: ErrorCode
 
 

@@ -8,6 +8,7 @@ from typing import Optional
 import pyotp
 import qrcode
 from fastapi import Depends, FastAPI, HTTPException, Response, status
+from fastapi.staticfiles import StaticFiles
 from fastapi.security import (
     HTTPAuthorizationCredentials,
     HTTPBasic,
@@ -58,7 +59,9 @@ async def get_db() -> Database:
     return db
 
 
+
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 async def get_current_user(
